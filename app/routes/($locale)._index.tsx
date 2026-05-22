@@ -1,5 +1,6 @@
 import {Await, useLoaderData, Link} from 'react-router';
-import type {Route} from './+types/_index';
+import type {Route} from './+types/($locale)._index';
+
 import {Suspense} from 'react';
 import {Image} from '@shopify/hydrogen';
 import type {
@@ -8,6 +9,15 @@ import type {
 } from 'storefrontapi.generated';
 import {ProductItem} from '~/components/ProductItem';
 import {MockShopNotice} from '~/components/MockShopNotice';
+
+// SANITY
+import {client} from '~/sanity/client';
+import type {Post} from '~/sanity/types';
+
+const POSTS_QUERY = `*[
+  _type == "post"
+  && defined(slug.current)
+]|order(publishedAt desc)[0...12]{_id, title, slug, publishedAt, image}`;
 
 export const meta: Route.MetaFunction = () => {
   return [{title: 'Hydrogen | Home'}];
@@ -20,7 +30,11 @@ export async function loader(args: Route.LoaderArgs) {
   // Await the critical data required to render initial state of the page
   const criticalData = await loadCriticalData(args);
 
-  return {...deferredData, ...criticalData};
+  return {
+    ...deferredData,
+    ...criticalData,
+    posts: await client.fetch<Post[]>(POSTS_QUERY),
+  };
 }
 
 /**
@@ -58,10 +72,25 @@ function loadDeferredData({context}: Route.LoaderArgs) {
   };
 }
 
-export default function Homepage() {
+export default function Homepage({loaderData}: Route.ComponentProps) {
+  const {posts} = loaderData;
   const data = useLoaderData<typeof loader>();
   return (
     <div className="home">
+      <h1 className="text-4xl font-bold mb-8">Posts</h1>
+      <ul className="flex flex-col gap-y-4">
+        {posts.map((post) => (
+          <li className="hover:underline" key={post._id}>
+            <Link to={`/${post.slug?.current ?? ''}`}>
+              <h2 className="text-xl font-semibold">{post.title}</h2>
+              {post.publishedAt && (
+                <p>{new Date(post.publishedAt).toLocaleDateString()}</p>
+              )}
+            </Link>
+          </li>
+        ))}
+      </ul>
+
       {data.isShopLinked ? null : <MockShopNotice />}
       <FeaturedCollection collection={data.featuredCollection} />
       <RecommendedProducts products={data.recommendedProducts} />

@@ -27,6 +27,10 @@ export default defineConfig({
        * @see https://vitejs.dev/config/dep-optimization-options
        */
       include: [
+        'rxjs',
+        'rxjs/operators',
+        '@sanity/client',
+        '@sanity/client > rxjs',
         'react-router > set-cookie-parser',
         'react-router > cookie',
         'react-router',
