@@ -11,13 +11,14 @@ import {ProductItem} from '~/components/ProductItem';
 import {MockShopNotice} from '~/components/MockShopNotice';
 
 // SANITY
-import {client} from '~/sanity/client';
+import {client, urlFor} from '~/sanity/client';
 import type {Post} from '~/sanity/types';
+import {PortableText} from '@portabletext/react';
 
 const POSTS_QUERY = `*[
   _type == "post"
   && defined(slug.current)
-]|order(publishedAt desc)[0...12]{_id, title, slug, publishedAt, image}`;
+]|order(publishedAt desc)[0...12]{_id, title, slug, publishedAt, body, image}`;
 
 export const meta: Route.MetaFunction = () => {
   return [{title: 'Hydrogen | Home'}];
@@ -77,14 +78,43 @@ export default function Homepage({loaderData}: Route.ComponentProps) {
   const data = useLoaderData<typeof loader>();
   return (
     <div className="home">
-      <h1 className="text-4xl font-bold mb-8">Posts</h1>
-      <ul className="flex flex-col gap-y-4">
+      <h1 className="text-4xl font-bold mb-8">Posts from Sanity</h1>
+      <ul className="mx-auto flex max-w-md flex-col gap-y-8">
         {posts.map((post) => (
-          <li className="hover:underline" key={post._id}>
-            <Link to={`/${post.slug?.current ?? ''}`}>
-              <h2 className="text-xl font-semibold">{post.title}</h2>
+          <li
+            key={post._id}
+            className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm"
+          >
+            <Link to={`/${post.slug?.current ?? ''}`} className="block">
+              <header className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 text-sm font-semibold">{post.title}</div>
+                <button
+                  type="button"
+                  aria-label="More"
+                  className="text-neutral-500"
+                >
+                  ⋯
+                </button>
+              </header>
+              {post.image && (
+                <img
+                  src={urlFor(post.image).width(1080).height(1080).url()}
+                  alt={post.title ?? ''}
+                  className="aspect-square w-full object-cover"
+                  loading="lazy"
+                />
+              )}
+              <div className="px-4 py-2 text-sm">
+                {post.body && (
+                  <div className="text-sm">
+                    <PortableText value={post.body} />
+                  </div>
+                )}
+              </div>
               {post.publishedAt && (
-                <p>{new Date(post.publishedAt).toLocaleDateString()}</p>
+                <div className="px-4 pb-3 text-xs uppercase tracking-wide text-neutral-500">
+                  {new Date(post.publishedAt).toLocaleDateString('en-US')}
+                </div>
               )}
             </Link>
           </li>

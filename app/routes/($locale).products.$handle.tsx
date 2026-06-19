@@ -9,7 +9,7 @@ import {
   useSelectedOptionInUrlParam,
 } from '@shopify/hydrogen';
 import {ProductPrice} from '~/components/ProductPrice';
-import {ProductImage} from '~/components/ProductImage';
+import {ProductGallery} from '~/components/ProductGallery';
 import {ProductForm} from '~/components/ProductForm';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 
@@ -95,30 +95,79 @@ export default function Product() {
     selectedOrFirstAvailableVariant: selectedVariant,
   });
 
-  const {title, descriptionHtml} = product;
+  const {title, descriptionHtml, vendor} = product;
+
+  // Build the gallery: product images, fall back to the selected variant image
+  const galleryImages =
+    product.images?.nodes?.length
+      ? product.images.nodes
+      : selectedVariant?.image
+        ? [selectedVariant.image]
+        : [];
+
+  // Product specs sourced from metafields
+  const specs = [
+    {label: 'Collezione', value: product.collezione?.value},
+    {label: 'Materiale', value: product.materiale?.value},
+    {label: 'Tipo pietra', value: product.tipoPietra?.value},
+    {label: 'Caratura', value: selectedVariant?.caratura?.value},
+    {label: 'SKU', value: selectedVariant?.sku},
+  ].filter((s) => s.value);
 
   return (
-    <div className="product">
-      <ProductImage image={selectedVariant?.image} />
-      <div className="product-main">
-        <h1>{title}</h1>
-        <ProductPrice
-          price={selectedVariant?.price}
-          compareAtPrice={selectedVariant?.compareAtPrice}
-        />
-        <br />
-        <ProductForm
-          productOptions={productOptions}
-          selectedVariant={selectedVariant}
-        />
-        <br />
-        <br />
-        <p>
-          <strong>Description</strong>
-        </p>
-        <br />
-        <div dangerouslySetInnerHTML={{__html: descriptionHtml}} />
-        <br />
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 py-8 md:grid-cols-2 md:gap-14">
+      <div className="md:sticky md:top-24 md:self-start">
+        <ProductGallery images={galleryImages} title={title} />
+      </div>
+
+      <div className="flex flex-col">
+        {vendor && (
+          <span className="text-xs font-medium uppercase tracking-widest text-neutral-500">
+            {vendor}
+          </span>
+        )}
+        <h1 className="mt-1 text-3xl font-semibold leading-tight text-neutral-900">
+          {title}
+        </h1>
+
+        <div className="mt-4 text-2xl font-medium text-neutral-900">
+          <ProductPrice
+            price={selectedVariant?.price}
+            compareAtPrice={selectedVariant?.compareAtPrice}
+          />
+        </div>
+
+        <div className="mt-6 border-t border-neutral-200 pt-6">
+          <ProductForm
+            productOptions={productOptions}
+            selectedVariant={selectedVariant}
+          />
+        </div>
+
+        {specs.length > 0 && (
+          <dl className="mt-8 grid grid-cols-1 gap-x-8 gap-y-3 border-t border-neutral-200 pt-6 sm:grid-cols-2">
+            {specs.map((s) => (
+              <div key={s.label} className="flex justify-between gap-4 sm:block">
+                <dt className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                  {s.label}
+                </dt>
+                <dd className="text-sm text-neutral-900 sm:mt-0.5">{s.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+
+        {descriptionHtml && (
+          <div className="mt-8 border-t border-neutral-200 pt-6">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-900">
+              Descrizione
+            </h2>
+            <div
+              className="prose prose-neutral mt-3 max-w-none text-sm leading-relaxed text-neutral-700"
+              dangerouslySetInnerHTML={{__html: descriptionHtml}}
+            />
+          </div>
+        )}
       </div>
       <Analytics.ProductView
         data={{
@@ -173,6 +222,9 @@ const PRODUCT_VARIANT_FRAGMENT = `#graphql
       amount
       currencyCode
     }
+    caratura: metafield(namespace: "custom", key: "caratura") {
+      value
+    }
   }
 ` as const;
 
@@ -184,6 +236,24 @@ const PRODUCT_FRAGMENT = `#graphql
     handle
     descriptionHtml
     description
+    images(first: 20) {
+      nodes {
+        id
+        url
+        altText
+        width
+        height
+      }
+    }
+    materiale: metafield(namespace: "custom", key: "materiale") {
+      value
+    }
+    tipoPietra: metafield(namespace: "custom", key: "tipo_pietra") {
+      value
+    }
+    collezione: metafield(namespace: "custom", key: "collezione") {
+      value
+    }
     encodedVariantExistence
     encodedVariantAvailability
     options {
