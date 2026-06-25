@@ -242,19 +242,67 @@ function SearchResultsPredictiveProducts({
 function SearchResultsPredictiveQueries({
   queries,
   queriesDatalistId,
-}: PartialPredictiveSearchResult<'queries', never> & {
+  term,
+  closeSearch,
+}: PartialPredictiveSearchResult<'queries'> & {
   queriesDatalistId: string;
 }) {
   if (!queries.length) return null;
 
   return (
-    <datalist id={queriesDatalistId}>
-      {queries.map((suggestion) => {
-        if (!suggestion) return null;
+    <div className="predictive-search-result" key="queries">
+      <h5>Suggestions</h5>
+      {/* Native datalist for input autocomplete */}
+      <datalist id={queriesDatalistId}>
+        {queries.map((suggestion) => {
+          if (!suggestion) return null;
+          return <option key={suggestion.text} value={suggestion.text} />;
+        })}
+      </datalist>
+      {/* Visible, clickable suggestion list */}
+      <ul>
+        {queries.map((suggestion) => {
+          if (!suggestion) return null;
 
-        return <option key={suggestion.text} value={suggestion.text} />;
-      })}
-    </datalist>
+          const queryUrl = urlWithTrackingParams({
+            baseUrl: '/search',
+            trackingParams: suggestion.trackingParameters,
+            term: suggestion.text,
+          });
+
+          return (
+            <li
+              className="predictive-search-result-item predictive-search-result-item--query"
+              key={suggestion.text}
+            >
+              <Link onClick={closeSearch} to={queryUrl}>
+                <svg
+                  className="predictive-search-query-icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <span
+                  // styledText highlights the matched portion of the term
+                  dangerouslySetInnerHTML={{
+                    __html: suggestion.styledText ?? suggestion.text,
+                  }}
+                />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

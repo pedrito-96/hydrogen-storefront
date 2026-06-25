@@ -396,6 +396,16 @@ button.reset:hover:not(:has(> *)) {
   height: 100%;
 }
 
+.predictive-search-result-item--query a {
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.predictive-search-query-icon {
+  flex-shrink: 0;
+  color: #888;
+}
+
 .search-result {
   margin-bottom: 1.5rem;
 }

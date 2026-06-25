@@ -110,6 +110,8 @@ function SearchAside() {
                 <SearchResultsPredictive.Queries
                   queries={queries}
                   queriesDatalistId={queriesDatalistId}
+                  term={term}
+                  closeSearch={closeSearch}
                 />
                 <SearchResultsPredictive.Products
                   products={products}
