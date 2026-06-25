@@ -12,6 +12,7 @@ import type {
   RegularSearchQuery,
   PredictiveSearchQuery,
 } from 'storefrontapi.generated';
+import type {ProductFilter} from '@shopify/hydrogen/storefront-api-types';
 
 export const meta: Route.MetaFunction = () => {
   return [{title: `Hydrogen | Search`}];
@@ -65,6 +66,7 @@ export default function SearchPage() {
         <SearchResults result={result} term={term}>
           {({articles, pages, products, term}) => (
             <div>
+              <SearchResults.Filters filters={products?.productFilters} />
               <SearchResults.Products products={products} term={term} />
               <SearchResults.Pages pages={pages} term={term} />
               <SearchResults.Articles articles={articles} term={term} />
@@ -161,6 +163,7 @@ export const SEARCH_QUERY = `#graphql
     $last: Int
     $term: String!
     $startCursor: String
+    $productFilters: [ProductFilter!]
   ) @inContext(country: $country, language: $language) {
     articles: search(
       query: $term,
@@ -193,6 +196,7 @@ export const SEARCH_QUERY = `#graphql
       sortKey: RELEVANCE,
       types: [PRODUCT],
       unavailableProducts: HIDE,
+      productFilters: $productFilters,
     ) {
       nodes {
         ...on Product {
@@ -201,6 +205,17 @@ export const SEARCH_QUERY = `#graphql
       }
       pageInfo {
         ...PageInfoFragment
+      }
+      productFilters {
+        id
+        label
+        type
+        values {
+          id
+          label
+          count
+          input
+        }
       }
     }
   }
@@ -225,13 +240,26 @@ async function regularSearch({
   const variables = getPaginationVariables(request, {pageBy: 8});
   const term = String(url.searchParams.get('q') || '');
 
+  // Each applied facet is stored as a `filter` search param holding the JSON
+  // `input` string that the Storefront API returned for that facet value.
+  const productFilters: ProductFilter[] = url.searchParams
+    .getAll('filter')
+    .map((value) => {
+      try {
+        return JSON.parse(value) as ProductFilter;
+      } catch {
+        return null;
+      }
+    })
+    .filter((f): f is ProductFilter => f !== null);
+
   // Search articles, pages, and products for the `q` term
   const {
     errors,
     ...items
   }: {errors?: Array<{message: string}>} & RegularSearchQuery =
     await storefront.query(SEARCH_QUERY, {
-      variables: {...variables, term},
+      variables: {...variables, term, productFilters},
     });
 
   if (!items) {
